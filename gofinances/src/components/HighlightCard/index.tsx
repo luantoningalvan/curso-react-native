@@ -1,7 +1,7 @@
 import { Container } from "./styles";
 import { Header, Title, Footer, Amount, LastTransaction, Icon } from "./styles";
 
-interface HighlightCardProps {
+export interface HighlightCardProps {
   title: string;
   amount: string;
   lastTransaction: string;

@@ -1,3 +1,4 @@
+import { categories } from "../../utils/categories";
 import {
   Container,
   Title,
@@ -9,16 +10,11 @@ import {
   Date,
 } from "./styles";
 
-type Category = {
-  name: string;
-  icon: string;
-};
-
 export type TransactionCardData = {
   type: "positive" | "negative";
-  title: string;
+  name: string;
   amount: string;
-  category: Category;
+  category: string;
   date: string;
 };
 
@@ -27,19 +23,20 @@ interface TransactionCardProps {
 }
 
 export function TransactionCard({ data }: TransactionCardProps) {
-  const { type, title, amount, category, date } = data;
+  const { type, name, amount, category, date } = data;
+  const findCategory = categories.find(({ key }) => key === category);
 
   return (
     <Container>
-      <Title>{title}</Title>
+      <Title>{name}</Title>
       <Amount type={type}>
         {type === "negative" && "- "}
         {amount}
       </Amount>
       <Footer>
         <Category>
-          <Icon name={category.icon} />
-          <CategoryName>{category.name}</CategoryName>
+          <Icon name={findCategory.icon} />
+          <CategoryName>{findCategory.name}</CategoryName>
         </Category>
         <Date>{date}</Date>
       </Footer>
