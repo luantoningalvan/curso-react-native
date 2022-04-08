@@ -29,6 +29,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { ActivityIndicator } from "react-native";
 import { useTheme } from "styled-components";
+import { formatarBrl } from "../../utils/formatBrl";
 
 export interface DataListProps extends TransactionCardData {
   id: string;
@@ -47,13 +48,6 @@ export const Dashboard = () => {
         setIsLoading(true);
 
         const dataKey = "@gofinance:transactions";
-
-        function formatarBrl(valor) {
-          return Number(valor).toLocaleString("pt-BR", {
-            style: "currency",
-            currency: "BRL",
-          });
-        }
 
         const getDataFromAsyncStorage = await AsyncStorage.getItem(dataKey);
 
