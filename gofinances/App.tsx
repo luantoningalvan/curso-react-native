@@ -13,9 +13,9 @@ import {
   Poppins_500Medium,
   Poppins_700Bold,
 } from "@expo-google-fonts/poppins";
-import { NavigationContainer } from "@react-navigation/native";
-import { AppRoutes } from "./src/routes/App.routes";
 import { StatusBar } from "react-native";
+import { AuthProvider } from "./src/hooks/AuthContext";
+import { Routes } from "./src/routes";
 
 export default function App() {
   const [fontsLoader] = useFonts({
@@ -35,9 +35,9 @@ export default function App() {
           backgroundColor={theme.colors.primary}
           barStyle="light-content"
         />
-        <NavigationContainer>
-          <AppRoutes />
-        </NavigationContainer>
+          <AuthProvider>
+            <Routes />
+          </AuthProvider>
       </GestureHandlerRootView>
     </ThemeProvider>
   );

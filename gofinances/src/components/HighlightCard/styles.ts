@@ -1,13 +1,13 @@
 import styled, { css } from "styled-components/native";
 import { Feather } from "@expo/vector-icons";
-import { RFValue } from "react-native-responsive-fontsize";
+import { RFPercentage, RFValue } from "react-native-responsive-fontsize";
 
 type TypeProps = { type: "up" | "down" | "total" };
 
 export const Container = styled.View<TypeProps>`
   background-color: ${({ theme, type }) =>
     type === "total" ? theme.colors.secondary : theme.colors.shape};
-  width: ${RFValue(300)}px;
+  width: ${RFPercentage(40)}px;
   border-radius: 4px;
   padding: 22px;
   padding-bottom: ${RFValue(44)}px;

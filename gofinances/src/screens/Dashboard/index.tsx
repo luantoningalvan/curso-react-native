@@ -1,4 +1,4 @@
-import React, { useCallback, useLayoutEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   HighlightCard,
   HighlightCardProps,
@@ -30,6 +30,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { ActivityIndicator } from "react-native";
 import { useTheme } from "styled-components";
 import { formatarBrl } from "../../utils/formatBrl";
+import { useAuth } from "../../hooks/AuthContext";
 
 export interface DataListProps extends TransactionCardData {
   id: string;
@@ -39,139 +40,147 @@ export const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [transactions, setTransactions] = useState<DataListProps[]>([]);
   const [highlights, setHighlights] = useState<HighlightCardProps[]>([]);
+  const { signOut, user } = useAuth();
 
   const theme = useTheme();
 
   useFocusEffect(
     useCallback(() => {
       async function loadTransactions() {
-        setIsLoading(true);
+        try {
+          setIsLoading(true);
 
-        const dataKey = "@gofinance:transactions";
+          const dataKey = "@gofinance:transactions";
 
-        const getDataFromAsyncStorage = await AsyncStorage.getItem(dataKey);
+          const getDataFromAsyncStorage = await AsyncStorage.getItem(dataKey);
 
-        const currentTransactions: any[] = getDataFromAsyncStorage
-          ? JSON.parse(getDataFromAsyncStorage)
-          : [];
+          const currentTransactions: any[] = getDataFromAsyncStorage
+            ? JSON.parse(getDataFromAsyncStorage)
+            : [];
 
-        const transactionFormated: DataListProps[] = currentTransactions.map(
-          (item: DataListProps) => {
-            const amount = formatarBrl(item.amount);
-            const date = new Date(item.date);
-            const dateFormatted = Intl.DateTimeFormat("pt-BR", {
-              day: "2-digit",
-              month: "2-digit",
-              year: "2-digit",
-            }).format(date);
+          const transactionFormated: DataListProps[] = currentTransactions.map(
+            (item: DataListProps) => {
+              const amount = formatarBrl(item.amount);
+              const date = new Date(item.date);
+              const dateFormatted = Intl.DateTimeFormat("pt-BR", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "2-digit",
+              }).format(date);
 
-            return {
-              id: item.id,
-              name: item.name,
-              amount,
-              type: item.type,
-              category: item.category,
-              date: dateFormatted,
-            };
+              return {
+                id: item.id,
+                name: item.name,
+                amount,
+                type: item.type,
+                category: item.category,
+                date: dateFormatted,
+              };
+            }
+          );
+
+          const initialTotalizers = {
+            incomes: { value: 0, lastTransaction: "" },
+            expenses: { value: 0, lastTransaction: "" },
+            total: { value: 0, lastTransaction: "" },
+          };
+
+          type Totalizers = typeof initialTotalizers;
+
+          function getMaxDate(firstDate, lastDate) {
+            return firstDate &&
+              new Date(firstDate).getDate() > lastDate.getDate()
+              ? firstDate
+              : lastDate;
           }
-        );
 
-        const initialTotalizers = {
-          incomes: { value: 0, lastTransaction: "" },
-          expenses: { value: 0, lastTransaction: "" },
-          total: { value: 0, lastTransaction: "" },
-        };
+          const totalizers: Totalizers = currentTransactions.reduce(
+            (
+              prev: Totalizers,
+              curr: { amount: number; type: string; date: string }
+            ) => {
+              const currentDate = new Date(curr.date);
 
-        type Totalizers = typeof initialTotalizers;
-
-        function getMaxDate(firstDate, lastDate) {
-          return firstDate && new Date(firstDate).getDate() > lastDate.getDate()
-            ? firstDate
-            : lastDate;
-        }
-
-        const totalizers: Totalizers = currentTransactions.reduce(
-          (
-            prev: Totalizers,
-            curr: { amount: number; type: string; date: string }
-          ) => {
-            const currentDate = new Date(curr.date);
-
-            return {
-              incomes:
-                curr.type === "positive"
-                  ? {
-                      value: prev.incomes.value + curr.amount,
-                      lastTransaction: getMaxDate(
-                        prev.incomes.lastTransaction,
-                        currentDate
-                      ),
-                    }
-                  : prev.incomes,
-              expenses:
-                curr.type === "negative"
-                  ? {
-                      value: prev.expenses.value + curr.amount,
-                      lastTransaction: getMaxDate(
-                        prev.expenses.lastTransaction,
-                        currentDate
-                      ),
-                    }
-                  : prev.expenses,
-              total: {
-                value:
+              return {
+                incomes:
                   curr.type === "positive"
-                    ? prev.total.value + curr.amount
-                    : prev.total.value - curr.amount,
-                lastTransaction: getMaxDate(
-                  prev.total.lastTransaction,
-                  currentDate
-                ),
-              },
-            };
-          },
-          initialTotalizers
-        );
+                    ? {
+                        value: prev.incomes.value + curr.amount,
+                        lastTransaction: getMaxDate(
+                          prev.incomes.lastTransaction,
+                          currentDate
+                        ),
+                      }
+                    : prev.incomes,
+                expenses:
+                  curr.type === "negative"
+                    ? {
+                        value: prev.expenses.value + curr.amount,
+                        lastTransaction: getMaxDate(
+                          prev.expenses.lastTransaction,
+                          currentDate
+                        ),
+                      }
+                    : prev.expenses,
+                total: {
+                  value:
+                    curr.type === "positive"
+                      ? prev.total.value + curr.amount
+                      : prev.total.value - curr.amount,
+                  lastTransaction: getMaxDate(
+                    prev.total.lastTransaction,
+                    currentDate
+                  ),
+                },
+              };
+            },
+            initialTotalizers
+          );
 
-        function formatDate(date) {
-          return Intl.DateTimeFormat("pt-BR", {
-            day: "2-digit",
-            month: "long",
-          }).format(new Date(date));
+          function formatDate(date) {
+            return date
+              ? Intl.DateTimeFormat("pt-BR", {
+                  day: "2-digit",
+                  month: "long",
+                }).format(new Date(date))
+              : "";
+          }
+
+          setHighlights([
+            {
+              title: "Entradas",
+              amount: formatarBrl(totalizers.incomes.value),
+              lastTransaction:
+                "Última entrada dia " +
+                formatDate(totalizers.incomes.lastTransaction),
+              type: "up",
+            },
+
+            {
+              title: "Saídas",
+              amount: formatarBrl(totalizers.expenses.value),
+              lastTransaction:
+                "Última saída dia " +
+                formatDate(totalizers.expenses.lastTransaction),
+              type: "down",
+            },
+
+            {
+              title: "Total",
+              amount: formatarBrl(totalizers.total.value),
+              lastTransaction:
+                "Última transação dia " +
+                formatDate(totalizers.total.lastTransaction),
+              type: "total",
+            },
+          ]);
+
+          setTransactions(transactionFormated);
+
+          setIsLoading(false);
+        } catch (error) {
+          console.log(error);
         }
-
-        setHighlights([
-          {
-            title: "Entradas",
-            amount: formatarBrl(totalizers.incomes.value),
-            lastTransaction:
-              "Última entrada dia " +
-              formatDate(totalizers.incomes.lastTransaction),
-            type: "up",
-          },
-
-          {
-            title: "Saídas",
-            amount: formatarBrl(totalizers.expenses.value),
-            lastTransaction:
-              "Última saída dia " +
-              formatDate(totalizers.expenses.lastTransaction),
-            type: "down",
-          },
-
-          {
-            title: "Total",
-            amount: formatarBrl(totalizers.total.value),
-            lastTransaction:
-              "Última transação dia " +
-              formatDate(totalizers.total.lastTransaction),
-            type: "total",
-          },
-        ]);
-
-        setTransactions(transactionFormated);
-
-        setIsLoading(false);
       }
 
       loadTransactions();
@@ -191,16 +200,16 @@ export const Dashboard = () => {
               <UserInfo>
                 <Photo
                   source={{
-                    uri: "https://xesque.rocketseat.dev/users/avatar/profile-f5736bd2-7463-43f4-b89b-2b86c16c5aae-1635177068015.jpg",
+                    uri: user.photo,
                   }}
                 />
                 <User>
                   <UserGretting>Olá,</UserGretting>
-                  <UserName>Luan</UserName>
+                  <UserName>{user.name}</UserName>
                 </User>
               </UserInfo>
 
-              <LogoutButton onPress={() => {}}>
+              <LogoutButton onPress={signOut}>
                 <Icon name="power" />
               </LogoutButton>
             </UserWrapper>
