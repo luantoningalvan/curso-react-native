@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Container,
   Header,
@@ -28,24 +28,69 @@ import { BackButton } from "../../components/BackButton";
 import { ImageSlider } from "../../components/ImageSlider";
 import { Accessory } from "../../components/Accessory";
 
-import SpeedSvg from "../../assets/speed.svg";
-import AccelerationSvg from "../../assets/acceleration.svg";
-import ForceSvg from "../../assets/force.svg";
-import GasolineSvg from "../../assets/gasoline.svg";
-import ExchangeSvg from "../../assets/exchange.svg";
-import PeopleSvg from "../../assets/people.svg";
 import { Button } from "../../components/Button";
 import { Feather } from "@expo/vector-icons";
 import { RFValue } from "react-native-responsive-fontsize";
 import { useTheme } from "styled-components";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import { CarDTO } from "../../dtos/CarDTO";
+import { getAccessoryIcon } from "../../utils/getAccessory";
+import { format } from "date-fns";
+import { getPlatformDate } from "../../utils/getPlatformDate";
+import { api } from "../../service/api";
+import { Alert } from "react-native";
+
+interface Params {
+  car: CarDTO;
+  dates: string[];
+}
 
 export function SchedulingDetails() {
   const theme = useTheme();
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
+  const route = useRoute();
+  const { car, dates } = route.params as Params;
+  const [loading, setLoading] = useState(false);
 
-  function handleConfirmRental() {
-    navigation.navigate("SchedulingComplete");
+  const rentTotal = car.rent.price * dates.length;
+
+  const rentalPeriod = {
+    start: format(getPlatformDate(new Date(dates[0])), "dd/MM/yyyy"),
+    end: format(
+      getPlatformDate(new Date(dates[dates.length - 1])),
+      "dd/MM/yyyy"
+    ),
+  };
+
+  async function handleConfirmRental() {
+    setLoading(true);
+
+    try {
+      const schedulesByCar = await api.get(`/schedules_bycars/${car.id}`);
+
+      const unavailable_dates = {
+        ...schedulesByCar.data.unavailable_dates,
+        ...dates,
+      };
+
+      await api.post("/schedules_byuser", {
+        car,
+        user_id: 1,
+        startDate: format(getPlatformDate(new Date(dates[0])), "dd/MM/yyyy"),
+        endDate: format(
+          getPlatformDate(new Date(dates[dates.length - 1])),
+          "dd/MM/yyyy"
+        ),
+      });
+      await api.put(`/schedules_bycars/${car.id}`, {
+        id: car.id,
+        unavailable_dates,
+      });
+      navigation.navigate("SchedulingComplete");
+    } catch (error) {
+      Alert.alert("Não foi possível realizar o agendamento");
+      setLoading(false);
+    }
   }
 
   return (
@@ -55,32 +100,29 @@ export function SchedulingDetails() {
       </Header>
 
       <CarImages>
-        <ImageSlider
-          imagesUrl={[
-            "https://static.virgola.com.br/images/419770ee902befc4e2f40da531b00ba3ef2c66fd29072d7a4cd83cd7b2274ff4.webp",
-          ]}
-        />
+        <ImageSlider imagesUrl={car.photos} />
       </CarImages>
 
       <Content>
         <Details>
           <Description>
-            <Brand>Chevrolet</Brand>
-            <Name>Montana</Name>
+            <Brand>{car.brand}</Brand>
+            <Name>{car.name}</Name>
           </Description>
           <Rent>
-            <Period>Ao dia</Period>
-            <Price>R$ 500</Price>
+            <Period>{car.rent.period}</Period>
+            <Price>R$ {car.rent.price}</Price>
           </Rent>
         </Details>
 
         <Acessories>
-          <Accessory name="380Km/h" icon={SpeedSvg} />
-          <Accessory name="3.2s" icon={AccelerationSvg} />
-          <Accessory name="800 HP" icon={ForceSvg} />
-          <Accessory name="Gasolina" icon={GasolineSvg} />
-          <Accessory name="Auto" icon={ExchangeSvg} />
-          <Accessory name="2 pessoas" icon={PeopleSvg} />
+          {car.accessories.map((accessory) => (
+            <Accessory
+              name={accessory.name}
+              key={accessory.type}
+              icon={getAccessoryIcon(accessory.type)}
+            />
+          ))}
         </Acessories>
 
         <RentalPeriod>
@@ -94,7 +136,7 @@ export function SchedulingDetails() {
 
           <DateInfo>
             <DateTitle>DE</DateTitle>
-            <DateValue>12/04/2022</DateValue>
+            <DateValue>{rentalPeriod.start}</DateValue>
           </DateInfo>
 
           <Feather
@@ -105,15 +147,15 @@ export function SchedulingDetails() {
 
           <DateInfo>
             <DateTitle>ATÉ</DateTitle>
-            <DateValue>14/04/2022</DateValue>
+            <DateValue>{rentalPeriod.end}</DateValue>
           </DateInfo>
         </RentalPeriod>
 
         <RentalPrice>
           <RentalPriceLabel>Total</RentalPriceLabel>
           <RentaPriceDetails>
-            <RentalPriceQuote>R$ 580 x3 diárias</RentalPriceQuote>
-            <RentalPriceTotal>R$ 2.900</RentalPriceTotal>
+            <RentalPriceQuote>{`R$ ${car.rent.price} x${dates.length} diárias`}</RentalPriceQuote>
+            <RentalPriceTotal>R$ {rentTotal}</RentalPriceTotal>
           </RentaPriceDetails>
         </RentalPrice>
       </Content>
@@ -122,6 +164,8 @@ export function SchedulingDetails() {
           onPress={handleConfirmRental}
           title="Alugar agora"
           color={theme.colors.success}
+          loading={loading}
+          enabled={!loading}
         />
       </Footer>
     </Container>

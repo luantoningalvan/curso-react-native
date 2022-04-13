@@ -1,7 +1,8 @@
 import styled from "styled-components/native";
 import { RFValue } from "react-native-responsive-fontsize";
 import { FlatList, FlatListProps } from "react-native";
-import { CarData } from "../../components/Car";
+import { RectButton } from "react-native-gesture-handler";
+import { CarDTO } from "../../dtos/CarDTO";
 
 export const Container = styled.View`
   flex: 1;
@@ -29,10 +30,22 @@ export const TotalCars = styled.Text`
 `;
 
 export const CarsList = styled(
-  FlatList as new (props: FlatListProps<CarData>) => FlatList<CarData>
+  FlatList as new (props: FlatListProps<CarDTO>) => FlatList<CarDTO>
 ).attrs({
   showsVerticalScrollIndicator: false,
   contentContainerStyle: {
     padding: 24,
   },
 })``;
+
+export const MyCarsButton = styled(RectButton)`
+  width: 60px;
+  height: 60px;
+  background-color: ${({ theme }) => theme.colors.main};
+  justify-content: center;
+  align-items: center;
+  border-radius: 30px;
+  position: absolute;
+  bottom: 22px;
+  right: 22px;
+`;

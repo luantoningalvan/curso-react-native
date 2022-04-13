@@ -46,7 +46,7 @@ export const DateTitle = styled.Text`
 export const DateValue = styled.Text<{ selected: boolean }>`
   font-family: ${({ theme }) => theme.fonts.primary_500};
   color: ${({ theme }) => theme.colors.shape};
-  font-size: ${RFValue(15)}px;
+  font-size: ${RFValue(14)}px;
   ${({ selected, theme }) =>
     !selected &&
     css`
