@@ -22,6 +22,7 @@ import {
   CarFooterDate,
 } from "./styles";
 import { AntDesign } from "@expo/vector-icons";
+import { LoadAnimation } from "../../components/LoadAnimation";
 
 export interface CarProps {
   id: string;
@@ -66,7 +67,7 @@ export function MyCars() {
 
       <Content>
         {loading ? (
-          <Load />
+          <LoadAnimation />
         ) : (
           <>
             <Appointments>
